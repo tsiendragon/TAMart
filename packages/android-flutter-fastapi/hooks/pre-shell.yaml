@@ -1,0 +1,16 @@
+schema: 1
+event: pre:shell
+capabilities:
+  blocking: true
+  input_mutability: read-only
+  output_mutability: read-only
+  exec_model: sync
+matcher:
+  commands:
+    - git
+    - curl
+    - wget
+action:
+  run: scripts/pre-bash-validate.sh
+  timeout: 10
+on-unsupported: warn

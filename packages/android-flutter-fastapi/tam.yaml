@@ -1,0 +1,153 @@
+schema: 1
+name: "@tamart/android-flutter-fastapi"
+version: "0.1.0"
+description: "Android Flutter + FastAPI 全栈开发工作流插件：涵盖 PRD → 数据库设计 → 任务规划 → 实现 → 测试 → Play Store 发布的完整开发生命周期"
+license: "MIT"
+keywords:
+  - flutter
+  - android
+  - fastapi
+  - workflow
+  - agents
+  - hooks
+  - sqlite
+  - docker
+  - play-store
+targets:
+  - claude-code
+
+permissions:
+  exec: [bash]
+  network: []
+
+assets:
+  # ── Rules ──────────────────────────────────────────────────
+  - type: rule
+    id: project-rules
+    src: rules/project-rules.md
+    scope: project
+    attach:
+      globs: ["**"]
+      alwaysApply: true
+
+  - type: rule
+    id: agents-rules
+    src: rules/agents-rules.md
+    scope: project
+    attach:
+      globs: ["**"]
+      alwaysApply: true
+
+  # ── Agents ─────────────────────────────────────────────────
+  - type: agent
+    id: pm
+    src: agents/pm.md
+    scope: project
+
+  - type: agent
+    id: architect
+    src: agents/architect.md
+    scope: project
+
+  - type: agent
+    id: flutter-dev
+    src: agents/flutter-dev.md
+    scope: project
+
+  - type: agent
+    id: fastapi-dev
+    src: agents/fastapi-dev.md
+    scope: project
+
+  - type: agent
+    id: qa
+    src: agents/qa.md
+    scope: project
+
+  - type: agent
+    id: reviewer
+    src: agents/reviewer.md
+    scope: project
+
+  - type: agent
+    id: devops
+    src: agents/devops.md
+    scope: project
+
+  # ── Commands ───────────────────────────────────────────────
+  - type: command
+    id: new-feature
+    src: commands/new-feature.md
+    scope: project
+
+  - type: command
+    id: db-design
+    src: commands/db-design.md
+    scope: project
+
+  - type: command
+    id: plan-feature
+    src: commands/plan-feature.md
+    scope: project
+
+  - type: command
+    id: implement
+    src: commands/implement.md
+    scope: project
+
+  - type: command
+    id: test-feature
+    src: commands/test-feature.md
+    scope: project
+
+  - type: command
+    id: review
+    src: commands/review.md
+    scope: project
+
+  - type: command
+    id: gen-docs
+    src: commands/gen-docs.md
+    scope: project
+
+  - type: command
+    id: release
+    src: commands/release.md
+    scope: project
+
+  # ── Hooks ──────────────────────────────────────────────────
+  # pre:file-write — 写代码前验证 PRD/Design 存在
+  - type: hook
+    id: hook-pre-file-write
+    src: hooks/pre-file-write.yaml
+    scope: project
+
+  # pre:file-edit — 同上，针对 Edit 工具
+  - type: hook
+    id: hook-pre-file-edit
+    src: hooks/pre-file-edit.yaml
+    scope: project
+
+  # post:file-write — 写完后静态检查内容
+  - type: hook
+    id: hook-post-file-write
+    src: hooks/post-file-write.yaml
+    scope: project
+
+  # post:file-edit — 同上，针对 Edit 工具
+  - type: hook
+    id: hook-post-file-edit
+    src: hooks/post-file-edit.yaml
+    scope: project
+
+  # pre:shell — git 安全检查 + commit 格式 + openapi stale 检查
+  - type: hook
+    id: hook-pre-shell
+    src: hooks/pre-shell.yaml
+    scope: project
+
+  # pre:session-stop — 每轮结束输出待处理项摘要
+  - type: hook
+    id: hook-session-stop
+    src: hooks/pre-session-stop.yaml
+    scope: project

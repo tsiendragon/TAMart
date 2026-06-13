@@ -38,7 +38,7 @@
 
 - `skill`:`src` 为目录,必须含 `SKILL.md`,其 frontmatter 必须有 `description`。
 - `agent`/`command`/`rule`:`src` 为含 frontmatter 的 `.md` 文件。
-- `hook`:`src` 为 `.yaml`,必须符合 [Spec 04 hook schema](./04-hook.md)(M3 落地;M1 仅校验存在性 + `on-unsupported`)。
+- `hook`:`src` 为 `.yaml`，字段校验按 [Spec 04 §5.2](./04-hook.md) 执行：M1 必须校验所有 `E_*` 级别错误（`E_HOOK_UNKNOWN_EVENT`、`E_HOOK_MISSING_MATCHER`、`E_HOOK_INVALID_PATTERN`、`E_HOOK_INVALID_COMBO`、`E_HOOK_REDOS_RISK`）；M3 扩展为完整 capability profile 与平台映射校验（per-platform 支持级别计算）。
 - `mcp`:`src` 为 server 声明 yaml;env 值仅允许 `${ENV_VAR}` 引用,出现明文 → `E_SECRET_INLINE`。
 - `attach` 出现在非 rule 资产 → `E_ATTACH_MISPLACED`。
 
@@ -81,6 +81,21 @@ Scenario: 明文 secret
   Given mcp 声明含明文 token
   When 运行 `tam validate`
   Then 退出码非 0,报 E_SECRET_INLINE,定位字段
+
+Scenario: hook 事件名非法
+  Given 含 hook 的包，hook 文件声明 event: pre:nonexistent
+  When 运行 `tam validate`
+  Then 退出码非 0，报 E_HOOK_UNKNOWN_EVENT，指出 hook 文件路径与 event 字段
+
+Scenario: hook 缺少 matcher
+  Given 含 hook 的包，hook 文件声明 event: pre:shell 但未提供 matcher.pattern
+  When 运行 `tam validate`
+  Then 退出码非 0，报 E_HOOK_MISSING_MATCHER
+
+Scenario: hook ReDoS 风险
+  Given 含 hook 的包，hook 文件的 matcher.pattern 为 `(a+)+b`
+  When 运行 `tam validate`
+  Then 退出码非 0，报 E_HOOK_REDOS_RISK
 ```
 
 - `tam validate` 对所有 `E_*` 退出码 `1`,仅 `W_*` 时退出码 `0` 但打印警告。

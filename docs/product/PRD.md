@@ -164,18 +164,31 @@ hook **不采用单一中立事件模型**,改用**能力格(capability lattice)
 ### 4.4 CLI(`tam`)
 
 ```
-tam init / validate                  # 脚手架 + manifest 校验 + 目标平台 dry-run 报告(v1:Claude+Cursor)
-tam search "<q>" --type --target     # 搜索(类型/目标平台过滤)
-tam info <pkg>                       # 详情 + 兼容性矩阵
-tam install <pkg> [--target --scope] # 自动探测已装工具,编译落盘 + 写 lock
+tam init / validate                       # 脚手架 + manifest 校验 + 目标平台 dry-run 报告(v1:Claude+Cursor)
+tam search "<q>" --type --target          # 搜索(类型/目标平台过滤)
+tam info <pkg>                            # 详情 + 兼容性矩阵
+tam install <pkg|./path> [--target]       # 自动探测已装工具,编译落盘 + 写 lock
+           [--global | --local]           #   --global: 安装到用户级目录(~/.claude / ~/.cursor)
+                                          #   --local(默认): 安装到当前项目(.claude/ / .cursor/)
 tam list / outdated / update [pkg]
-tam uninstall <pkg>                  # 凭 lock 精确清理生成文件
-tam sync                             # 按 tam.lock 重建(CI / 新人入职)
-tam publish [--also-native]          # 打包 + 扫描 + 上传/发 PR;可选发布直通
+tam uninstall <pkg> [--global | --local]  # 凭 lock 精确清理生成文件
+tam sync                                  # 按 tam.lock 重建(CI / 新人入职)
+tam publish [--also-native]               # 打包 + 扫描 + 上传/发 PR;可选发布直通
 tam registry add/list/remove
 ```
 
-要点:**target 自动探测**;`project`/`user` 双 scope;安装前展示**适配报告 + 权限声明 + 文件 diff**;
+**`--global` / `--local` 语义**(对齐 npm 惯例,取代 `--scope`):
+
+| 标志 | scope 等价 | 写入位置 |
+|---|---|---|
+| `--local`(默认) | `project` | `.claude/` `.cursor/`(当前目录) |
+| `--global` | `user` | `~/.claude/` `~/.cursor/` |
+
+**本地路径安装**(`./path`):用于尚未发布到 registry 的本地包。路径须含 `tam.yaml`。
+仍遵循完整安装流程(plan → diff 预览 → 事务落盘 → 写 `tam.lock`),
+取代手写的 `install.sh` 脚本。
+
+要点:**target 自动探测**;`--global/--local` 双 scope;安装前展示**适配报告 + 权限声明 + 文件 diff**;
 `--yes` 供 CI;生成文件带托管标记注释,sync 幂等、绝不动手写文件。
 
 ### 4.5 Web 市场
@@ -288,6 +301,22 @@ tam registry add/list/remove
 | 健康度 | 作者复更率 = 90 日内发新版的活跃包 / 活跃包总数;安装集中度 = top-10 包安装数 / 总安装数(HHI);兼容性失效上报 = 用户标记"装了不工作"事件计数 / 周 | 见左 | 建基线 |
 | 安全 | 平均 takedown 时延、漂移后修复时延 | 事件时间戳 | takedown < 24h |
 
+**M1/M2 代理指标（北极星尚不可测时的替代基线）**：
+
+北极星指标（周留存可移植安装）需要足够大的分母和遥测基础设施，M1/M2 阶段绝对数量过低，直接测量无意义。M1/M2 期间使用以下代理指标：
+
+| 代理指标 | 口径 | M1/M2 目标 |
+|---|---|---|
+| tam.lock 中非原生 target 安装记录数 | tam.lock 含跨 target 编译条目的仓库/环境数（beta 用户自愿上报） | M2 beta：≥ 10 个仓库 |
+| sync 成功率 | beta 用户 `tam sync` 成功次数 / 总次数（CLI telemetry，opt-in） | ≥ 95% |
+| 金丝雀 CI 通过率 | 双平台 golden + 金丝雀 CI 绿色天数 / 总天数 | ≥ 90% |
+
+**遥测基础设施（M1 交付物）**：
+
+- CLI 内置 opt-in 遥测（默认关闭，`tam config telemetry=on` 开启）；
+- 上报事件：`tam install/sync/uninstall` 触发时间、target 类型（`claude-code`/`cursor`）、是否为非原生 target 安装，**不上报包名、内容、用户标识**；
+- M2 beta 邀请用户须在 onboarding 中明确选择是否开启遥测，遥测数据用于建立北极星基线。
+
 > 内容密度(索引组件数)降级为**输入型**指标,不作为成功标准,避免 vanity。
 
 ---
@@ -312,7 +341,7 @@ tam registry add/list/remove
 
 | 阶段 | 范围 | 进出标准 / 验证目标 |
 |---|---|---|
-| **M1 编译核心** | 包格式 + `tam`(init/validate/install/sync)+ Claude & Cursor adapter + 不可变归档 registry(只读授权)| 出:同一包→两平台 golden 产物通过;`install`/`sync` 幂等+原子;每命令有验收标准 |
+| **M1 编译核心** | 包格式 + `tam`(init/validate/install/sync)+ Claude & Cursor adapter + 不可变归档 registry(只读授权)+ **tam-shim**（macOS/Linux，Node.js 实现，随 install 生成，版本与 tam CLI 绑定，digest 追踪）+ **profiles/_schema.yaml** + **遥测基础设施**（opt-in CLI telemetry） | 出:同一包→两平台 golden 产物通过;`install`/`sync` 幂等+原子;shim 篡改检测通过;每命令有验收标准 |
 | **M2 迁移 + 冷启动(合规)** | "导入并编译我的配置"工作流 + 团队 `tam.lock` 复现 + 合规元索引 + Web 只读浏览/徽章 + 邀请制作者 beta(自有策展供给)| 出:20–30 混合工具团队用 sync;北极星建基线 |
 | **M3 补齐平台 + 降级** | Codex & OpenCode adapter + hook 能力格/shim + capability profile + 金丝雀 CI + lockfile 冲突/三方合并 + uninstall/update | 出:四平台金丝雀 CI 绿;降级"零误导"QA 协议通过 |
 | **M4 安全管线 + 开放发布** | PR CI 扫描/隔离 + sigstore 签名 + 权限 broker + 信任分级 + yank → **达成 `G_OPEN`,开放上传** + publish-through | 出:`G_OPEN` 全部就绪;takedown<24h 演练通过 |

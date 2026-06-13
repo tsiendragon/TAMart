@@ -5,7 +5,12 @@
 ## 1. 通用约定
 
 - **退出码**:`0` 成功;`1` 用户/校验错误(`E_*`);`2` 冲突需决策;`3` 内部/IO 错误。
-- **scope**:`--scope project`(默认,写项目目录)/ `user`(写 `~/.claude`、`~/.cursor`)。
+- **scope 标志**:
+  - `--local`(默认):写当前项目目录(`.claude/`、`.cursor/`);等价于旧 `--scope project`。
+  - `--global`:写用户级目录(`~/.claude/`、`~/.cursor/`);等价于旧 `--scope user`。
+  - 底层 API 保留 `scope: "project"|"user"` 枚举;CLI 层将 `--global/--local` 转换。
+- **pkg 参数**:可以是 registry 包名(`@scope/name[@version]`)或**本地路径**(`./path/to/pkg`、`/abs/path`)。
+  本地路径须含 `tam.yaml`;仍执行完整 plan → preview → 事务落盘 → `tam.lock` 流程。
 - **target**:默认**自动探测**(见 §2);`--target claude-code,cursor` 显式覆盖。
 - **非交互**:`--yes` 自动确认;`--dry-run` 只打印计划不落盘;CI 应同时用 `--yes`(冲突仍以退出码 `2` 失败,不静默覆盖)。
 - **托管标记**:每个生成文件/区块写入 `tam` 标记,含 `package@version`、`assetId`、`target`、内容 `digest`。
@@ -19,7 +24,7 @@
 | 存在 `.cursor/` | cursor |
 | 均无 | 报 `E_NO_TARGET_DETECTED`,提示用 `--target` |
 
-`--scope user` 时探测用户级目录(`~/.claude`、`~/.cursor`)。
+`--global` 时探测用户级目录(`~/.claude`、`~/.cursor`)。
 
 ## 3. `tam install <pkg>` 流程
 
@@ -41,6 +46,7 @@
 - 写操作:对 scope 根加**文件锁**;所有产物先写 `*.tmp` 再**原子 rename**;`tam.lock` 在全部文件写成功后**最后**更新。
 - 崩溃恢复:存在 `tam.lock.journal` 说明上次事务未完成 → 下次 `install`/`sync` 先**回滚或重放**至一致态,再继续。
 - 幂等:对同一 lock 重复 `sync` 产生**零 FileOp**(已收敛);golden 测试断言"二次 sync 无变更"。
+- **shim 完整性**：`tam install` 在写入 hook 相关配置的同时，向 `.tam/shims/` 生成对应 shim 文件，并将每个 shim 的 `shimPath`、`digest`（sha256 of file content）、`tamVersion` 写入 `tam.lock`；`tam sync` 对已存在 shim 执行 digest 校验，不匹配则强制重建（防篡改）；检测到 shim 文件 world-writable 时，打印 `E_SHIM_UNSAFE_PERMISSIONS` 并拒绝执行该 shim。
 
 ## 5. 冲突检测与三方合并
 
@@ -63,10 +69,20 @@
 ## 7. 验收标准
 
 ```gherkin
-Scenario: 干净安装(双 target)
+Scenario: registry 包干净安装(双 target,project scope)
   Given 项目含 .claude/ 与 .cursor/,装一个含 skill+rule 的包
   When `tam install @okg/foo --yes`
   Then 退出码 0;.claude 与 .cursor 下生成带标记文件;tam.lock 记录每文件 digest 与归属
+
+Scenario: 本地路径安装到全局(--global)
+  Given ~/repos/.claude/skills/ccm-playwright-test/ 含合法 tam.yaml
+  When `tam install ~/repos/.claude/skills/ccm-playwright-test --global --yes`
+  Then 退出码 0;~/.claude/skills/ 下生成带标记文件;~/.claude/tam.lock 记录归属与 digest
+
+Scenario: 本地路径安装到当前项目(--local,默认)
+  Given ./packages/my-skill/ 含合法 tam.yaml,当前目录含 .claude/
+  When `tam install ./packages/my-skill`
+  Then 展示 diff 预览;确认后退出码 0;.claude/ 下生成文件;tam.lock 更新
 
 Scenario: 幂等 sync
   Given 已安装且无改动
@@ -91,4 +107,11 @@ Scenario: 崩溃后恢复
 Scenario: dry-run 无副作用
   When `tam install @okg/foo --dry-run`
   Then 打印完整计划与 diff;文件系统与 tam.lock 均无改动;退出码 0
+
+Scenario: shim 篡改检测
+  Given 已安装含 hook 的包，.tam/shims/ 下对应 shim 文件被外部进程修改
+  When 运行 `tam sync`
+  Then 检测到 shim digest 与 tam.lock 记录不匹配
+  And shim 文件被强制重建为 tam.lock 中记录版本
+  And 退出码 0（重建成功）
 ```

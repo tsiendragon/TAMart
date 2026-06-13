@@ -1,0 +1,1 @@
+{"version":3,"file":"loader.d.ts","sourceRoot":"","sources":["../../src/manifest/loader.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,EAAE,WAAW,EAAE,MAAM,aAAa,CAAA;AAE9C,wBAAgB,YAAY,CAAC,MAAM,EAAE,MAAM,GAAG;IAAE,QAAQ,EAAE,WAAW,CAAC;IAAC,YAAY,EAAE,MAAM,CAAA;CAAE,CAsB5F"}

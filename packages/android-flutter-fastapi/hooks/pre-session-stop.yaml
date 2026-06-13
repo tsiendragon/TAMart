@@ -1,0 +1,11 @@
+schema: 1
+event: pre:session-stop
+capabilities:
+  blocking: false
+  input_mutability: read-only
+  output_mutability: read-only
+  exec_model: sync
+action:
+  run: scripts/pre-session-stop.sh
+  timeout: 10
+on-unsupported: skip
