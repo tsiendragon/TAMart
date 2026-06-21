@@ -33,8 +33,14 @@ description: 端到端测试 — 分层混合（L1 后端全栈 / L2 web+Playwri
 [ ] e2e/flows/<feature>.flow.yaml 存在（缺失先 /e2e explore 生成草案）
 [ ] 关键控件已挂 Semantics(identifier:)（reviewer 已校验）
 [ ] frontend/lib/main_e2e.dart 存在（web/native e2e 入口，强制开启语义）
-[ ] L2 需 @playwright/test 已安装；L3 需 Android 模拟器/设备
+[ ] L2 一次性安装：playwright.config.ts（模板 templates/playwright.config.ts.template）
+    + package.json（templates/e2e.package.json.template）+ npm i -D @playwright/test
+    + npx playwright install --with-deps chromium
+[ ] L3 需 Android 模拟器/设备
 ```
+
+> 一次性脚手架安装清单（从 templates/ 拷到目标项目）：
+> `playwright.config.ts` · `package.json`(e2e 段) · `frontend/lib/main_e2e.dart` · `e2e/playwright/<feature>.spec.ts`(由 spec 模板生成) · `e2e/flows/<feature>.flow.yaml`
 
 ## 执行步骤
 

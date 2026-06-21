@@ -1,0 +1,9 @@
+{
+  "name": "android-flutter-fastapi",
+  "displayName": "TAMart — Android Flutter + FastAPI",
+  "version": "0.2.0",
+  "description": "Android Flutter + FastAPI full-stack workflow: PRD → DB design → tasks → implement → layered e2e (web Playwright + native integration_test) → Play Store. Workflow gates auto-activate in Flutter+FastAPI repos via a SessionStart hook.",
+  "author": { "name": "TAMart" },
+  "license": "MIT",
+  "keywords": ["flutter", "android", "fastapi", "workflow", "e2e", "playwright", "sync"]
+}

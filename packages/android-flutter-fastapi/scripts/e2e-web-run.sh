@@ -37,6 +37,12 @@ if [ ! -f "${FRONTEND_DIR}/lib/main_e2e.dart" ]; then
   exit 1
 fi
 
+if [ ! -f "playwright.config.ts" ]; then
+  echo "WARNING: playwright.config.ts missing — 视觉基线不会落到 e2e/baselines/。" >&2
+  echo "  一次性安装：cp 模板 templates/playwright.config.ts.template → playwright.config.ts；" >&2
+  echo "             并 npm i -D @playwright/test && npx playwright install --with-deps chromium" >&2
+fi
+
 echo "▶ L2 web e2e — feature=$FEATURE  backend=$E2E_BASE_URL"
 
 # 1. build web with the e2e entry point

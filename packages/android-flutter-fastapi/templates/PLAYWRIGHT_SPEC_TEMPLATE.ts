@@ -11,6 +11,9 @@
 import { test, expect, Page } from '@playwright/test';
 
 const WEB_URL = process.env.E2E_WEB_URL ?? 'http://localhost:8080';
+// 截图名用 [FEATURE, '<name>.png'] 数组形式 → 基线落到 e2e/baselines/<feature>/<name>.png
+// （阈值在 playwright.config.ts 的 expect.toHaveScreenshot 全局设置）
+const FEATURE = '<feature>';
 
 // 语义节点定位辅助：identifier → <flt-semantics id="...">
 function byId(page: Page, id: string) {
@@ -31,11 +34,8 @@ test.describe('<feature> e2e', () => {
     await byId(page, 'login-submit-btn').click();
     await expect(byId(page, 'home')).toBeVisible();
 
-    // 视觉基线（入库于 e2e/baselines/<feature>/）
-    await expect(page).toHaveScreenshot('after-login.png', {
-      maxDiffPixelRatio: 0.01,
-      threshold: 0.2,
-    });
+    // 视觉基线（入库于 e2e/baselines/<feature>/after-login.png）
+    await expect(page).toHaveScreenshot([FEATURE, 'after-login.png']);
 
     // ── 新建交易（同时断言网络请求）──
     const [resp] = await Promise.all([
@@ -51,7 +51,7 @@ test.describe('<feature> e2e', () => {
     expect((await resp.json()).code).toBe(0);
 
     await expect(byId(page, 'txn-list-item-amount')).toContainText('12.50');
-    await expect(page).toHaveScreenshot('after-create-txn.png', { maxDiffPixelRatio: 0.01, threshold: 0.2 });
+    await expect(page).toHaveScreenshot([FEATURE, 'after-create-txn.png']);
 
     // ── DB 断言（在测试外用 scripts/assert-db.sh，或经后端只读接口）──
     // bash scripts/assert-db.sh --table transactions --where '{"amount_cents":1250}' --expect exists

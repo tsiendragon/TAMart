@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tamart",
+  "description": "TAMart local marketplace — full-stack workflow plugins",
+  "owner": { "name": "TAMart" },
+  "plugins": [
+    {
+      "name": "android-flutter-fastapi",
+      "description": "Flutter + FastAPI full-stack workflow with layered e2e (web Playwright + native integration_test), Drift+sync, i18n, CI/STATUS gates.",
+      "category": "workflow",
+      "source": "./packages/android-flutter-fastapi"
+    }
+  ]
+}
