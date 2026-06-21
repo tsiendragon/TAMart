@@ -9,6 +9,8 @@ description: 端到端测试 — 分层混合（L1 后端全栈 / L2 web+Playwri
 /e2e <subcommand> <feature> [options]
 ```
 
+> 作为已安装插件，命令在命名空间下调用：`/android-flutter-fastapi:e2e <subcommand> <feature>`。
+
 | 子命令 | 作用 |
 |--------|------|
 | `/e2e backend <feature>` | L1：起 FastAPI + 测试库，跑后端全栈 e2e（含同步 push/pull） |

@@ -49,12 +49,9 @@ fi
 # Allowed: type(scope): description
 # Types: feat fix docs test chore refactor style ci perf
 # ────────────────────────────────────────────────────────────
-if echo "$COMMAND" | grep -qE 'git\s+commit'; then
-  # Extract message from -m "..." or -m '...'
-  MSG=$(echo "$COMMAND" | grep -oP '(?<=-m\s["\x27])[^"\x27]+' | head -1 || true)
-  if [ -z "$MSG" ]; then
-    MSG=$(echo "$COMMAND" | grep -oP '(?<=-m ")[^"]+' | head -1 || true)
-  fi
+if echo "$COMMAND" | grep -qE 'git[[:space:]]+commit'; then
+  # Extract message after -m "..." or -m '...' (portable; BSD grep has no -P/lookbehind)
+  MSG=$(printf '%s' "$COMMAND" | sed -nE "s/.*-m[[:space:]]+[\"']([^\"']*)[\"'].*/\1/p" | head -1)
 
   if [ -n "$MSG" ]; then
     CONVENTIONAL_PATTERN='^(feat|fix|docs|test|chore|refactor|style|ci|perf|revert)(\([a-zA-Z0-9_-]+\))?: .{3,}'
