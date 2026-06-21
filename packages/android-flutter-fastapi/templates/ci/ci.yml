@@ -1,0 +1,98 @@
+# ============================================================================
+# CI — backend tests + frontend analyze/test + L1/L2 e2e
+# 安装位置：.github/workflows/ci.yml
+# L3 原生 e2e（模拟器，耗时）见同目录 e2e-native.yml
+# ============================================================================
+name: ci
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ── 后端：单测 / 集成 / 契约 ──────────────────────────────
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }
+      - name: Install deps
+        run: pip install -r backend/requirements.txt
+      - name: Pytest (unit + integration + contract)
+        env:
+          PYTHONPATH: backend
+          DATABASE_URL: "sqlite:///:memory:"
+          JWT_SECRET_KEY: test_secret_key
+        run: python -m pytest backend/tests -v
+      - name: openapi.json 未过期检查
+        run: |
+          bash scripts/gen-api-docs.sh backend
+          git diff --exit-code docs/api/openapi.json \
+            || (echo "::error::openapi.json 过期，请运行 make gen-docs 并提交"; exit 1)
+
+  # ── 前端：代码生成 + 分析 + 测试 ──────────────────────────
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - name: Pub get + codegen
+        run: |
+          cd frontend
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+      - name: Analyze
+        run: cd frontend && flutter analyze
+      - name: Test (unit + widget + db)
+        run: cd frontend && flutter test
+
+  # ── L1 后端全栈 e2e + L2 web(Playwright) ─────────────────
+  e2e-web:
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+
+      - name: Install deps
+        run: |
+          pip install -r backend/requirements.txt
+          npm ci || npm install
+          npx playwright install --with-deps chromium
+
+      - name: Start backend (e2e)
+        env:
+          PYTHONPATH: backend
+          DATABASE_URL: "sqlite:///./e2e.db"
+          JWT_SECRET_KEY: test_secret_key
+        run: |
+          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/health && break; sleep 1; done
+
+      - name: L1 backend e2e
+        env: { E2E_BASE_URL: "http://localhost:8000" }
+        run: python -m pytest backend/tests/e2e -v
+
+      - name: L2 web build + Playwright
+        env: { E2E_BASE_URL: "http://localhost:8000" }
+        run: |
+          cd frontend && flutter pub get && dart run build_runner build --delete-conflicting-outputs
+          cd .. && bash scripts/e2e-web-run.sh ${{ vars.E2E_FEATURE || 'smoke' }}
+
+      - name: Upload Playwright report + baselines diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/

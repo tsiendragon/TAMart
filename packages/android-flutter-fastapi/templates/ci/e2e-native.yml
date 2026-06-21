@@ -1,0 +1,66 @@
+# ============================================================================
+# CI — L3 原生 e2e（Android 模拟器上的 integration_test）
+# 安装位置：.github/workflows/e2e-native.yml
+# 这是"测 APK"的可信门禁；较慢，作为 PR 门禁（也可改 schedule/手动触发）。
+# ============================================================================
+name: e2e-native
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+jobs:
+  l3-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.10" }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable }
+
+      # 模拟器硬件加速
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start backend (e2e)
+        env:
+          PYTHONPATH: backend
+          DATABASE_URL: "sqlite:///./e2e.db"
+          JWT_SECRET_KEY: test_secret_key
+        run: |
+          pip install -r backend/requirements.txt
+          python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+          for i in $(seq 1 30); do curl -sf http://localhost:8000/health && break; sleep 1; done
+
+      - name: Flutter deps + codegen
+        run: |
+          cd frontend
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+
+      # 模拟器内访问宿主后端用 10.0.2.2
+      - name: L3 integration_test on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            cd frontend
+            flutter test integration_test/ \
+              -d emulator-5554 \
+              --dart-define=E2E_BASE_URL=http://10.0.2.2:8000
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l3-native-logs
+          path: /tmp/e2e-native-*.log

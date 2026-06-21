@@ -36,14 +36,18 @@ description: 数据库设计命令（最高优先级门控）：分析 PRD 和 T
 对每张新增/修改表，输出设计块到 `docs/design/DATABASE.md`，包含：
 - 建表 SQL（或完整 DDL）
 - 每列：列名 / 类型 / 约束 / 默认值 / 说明
-- 枚举约束（VARCHAR + CHECK，禁止 PG 原生 ENUM）
+- 枚举约束（VARCHAR + CHECK，禁止 MySQL 原生 ENUM）
 - 索引列表（理由说明）
 - 设计决策记录（为什么这样设计）
 
-**步骤 4 — 输出 Migration 计划**
-- Migration 类型：autogenerate / 需手写 CHECK / 数据迁移
-- 存量数据影响：是 / 否
-- 是否有不可逆操作：是（说明） / 否
+**步骤 4 — 输出 Migration 计划（双侧）**
+- 后端 Alembic：autogenerate / 需手写 CHECK / 数据迁移；downgrade 是否可逆
+- 前端 Drift：当前 `schemaVersion` → 目标 N+1；`onUpgrade` step（createTable / addColumn / 回填）
+- 存量数据影响：是 / 否；是否有不可逆操作：是（说明） / 否
+
+**步骤 4b — 前端 Drift 映射**
+- 在 DATABASE.md「前端 Drift 映射」段补每张表的 Drift table 类与类型映射
+- 强调 schema 变更 4 件套原子提交（DATABASE.md + Alembic + Drift + 双侧测试）
 
 **步骤 5 — 等待确认**
 ```
@@ -51,11 +55,12 @@ description: 数据库设计命令（最高优先级门控）：分析 PRD 和 T
 
 新增表: [table_a, table_b]
 修改表: [table_c]（新增列: [col_x]）
-Migration 类型: autogenerate + 手写 CHECK
+后端 Alembic: autogenerate + 手写 CHECK
+前端 Drift: schemaVersion v22 → v23（createTable table_a）
 是否有存量数据风险: 否
 
 ---
-请 Review DATABASE.md 中新增的表设计。
+请 Review DATABASE.md 中新增的表设计（含前端 Drift 映射）。
 确认后回复「确认数据库设计」，我将标记为已确认并可以进入任务规划。
 ```
 
@@ -64,11 +69,12 @@ Migration 类型: autogenerate + 手写 CHECK
 - 删除 `.claude/state/schema-unconfirmed`（如存在）
 - 输出：「数据库设计已确认，可以运行 /plan-feature <feature> 进行任务规划」
 
-## 设计规范（强制）
-- 主键：`BIGSERIAL PRIMARY KEY`
-- 软删除：所有业务表必须有 `deleted_at TIMESTAMPTZ`
-- 时间戳：`created_at` / `updated_at`（均带时区）
-- 用户隔离：所有用户业务表必须有 `user_id BIGINT NOT NULL REFERENCES users(id)` + 索引
-- 枚举：`VARCHAR(N) NOT NULL CHECK(col IN (...))` — 禁止 PG `ENUM` 类型
-- FK 列必须有单独索引（Postgres 不自动创建）
-- 高频查询字段必须有索引（先列出查询模式，再决定索引）
+## 设计规范（强制，MySQL 8 / InnoDB）
+- 引擎/字符集：`InnoDB` + `utf8mb4`（COLLATE `utf8mb4_0900_ai_ci`）
+- 主键：`BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY`
+- 软删除：所有业务表必须有 `deleted_at DATETIME NULL`
+- 时间戳：`created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`、`updated_at ... ON UPDATE CURRENT_TIMESTAMP`（统一存 UTC）
+- 用户隔离：`user_id BIGINT NOT NULL` + `FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE`
+- 枚举：`VARCHAR(N) NOT NULL CHECK (col IN (...))` — 禁止 MySQL 原生 `ENUM`（改值需重建表）；CHECK 需 8.0.16+
+- 外键索引：InnoDB 自动创建，无需手加单列索引（与 Postgres 不同）
+- 高频查询字段必须有索引（先列出查询模式，再决定）；注意 utf8mb4 索引键长限制

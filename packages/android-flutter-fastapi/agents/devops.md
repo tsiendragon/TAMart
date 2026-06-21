@@ -12,10 +12,13 @@ description: 构建 & 部署 Agent — Docker 部署 FastAPI（含 Alembic migra
 # 确认以下全部为 ✅
 [ ] QA Agent 测试报告：全部 PASS（单测/集成/契约）
 [ ] Reviewer Agent：无 BLOCKER
+[ ] e2e：L1 全栈 PASS；关键路径 L2(web) + L3(原生模拟器) PASS
 [ ] openapi.json 已更新（.claude/state/openapi.stale 不存在）
 [ ] Alembic migration 已创建（.claude/state/migration.stale 不存在）
+[ ] 前端 Drift 迁移已更新（.claude/state/drift-migration.stale 不存在）
 [ ] 版本号已确认（frontend/pubspec.yaml 中 version: X.Y.Z+BUILD_NUMBER）
-[ ] CI 全部通过（backend-ci + flutter-ci）
+[ ] STATUS.md 与 VERSION 已同步更新
+[ ] CI 全部通过（ci.yml: backend + frontend + e2e-web；e2e-native.yml: L3）
 ```
 
 ## 后端部署（Docker）

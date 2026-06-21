@@ -14,6 +14,8 @@ description: Agent 协作约定，安装为 AGENTS.md
 3. **单任务节奏**：每轮只执行 TASK_LIST 中的一个任务，完成即 commit + push。
 4. **阶段交接必须输出 handoff message**：不允许跳过交接直接进入下一阶段。
 5. **完成一个完整改动单元**：更新文档 → 实现代码 → 运行验证 → commit → push。
+6. **schema 变更 4 件套原子提交**：任何表/列变更，必须在**同一个 commit**同步改齐 ① DATABASE.md ② 后端 Alembic migration（含 downgrade）③ 前端 Drift table + `schemaVersion` bump + `MigrationStrategy` step ④ 双侧迁移测试。缺一不可，不允许分多次提交。
+7. **同步协议是冻结契约**：涉及 `sync_id` / `updated_at` / tombstone / `schema_version` / push-pull / 冲突解决的变更，须经设计门控（见 SYNC_DESIGN_<feature>.md），不得在实现/测试阶段静默改。
 
 ## 1. 开发生命周期阶段
 
@@ -77,7 +79,9 @@ Tech Design: docs/design/FEATURE_<feature>.md
 ## DB Design Handoff → Plan
 DATABASE.md 已更新，涉及表: [table_a, table_b]
 已确认日期: <YYYY-MM-DD>
-Migration 类型: autogenerate + 手写 CHECK 约束
+后端 Alembic: autogenerate + 手写 CHECK 约束
+前端 Drift: schemaVersion v22 → v23（createTable / addColumn）
+同步影响: 是/否（涉及 sync_id/tombstone 时附 SYNC_DESIGN_<feature>.md）
 ```
 
 ### Architect → Dev

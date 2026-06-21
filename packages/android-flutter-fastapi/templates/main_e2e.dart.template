@@ -1,0 +1,48 @@
+// ============================================================================
+// main_e2e.dart — e2e 测试入口（web 与 native 共用）
+// 安装位置：frontend/lib/main_e2e.dart
+//
+// 作用：
+//   1. 强制开启 Flutter 语义树 → web 端 Playwright 能通过 <flt-semantics> 定位控件
+//   2. 把 API baseUrl 指向 e2e 测试后端（--dart-define=E2E_BASE_URL=...）
+//   3. 不进生产构建（仅 --target=lib/main_e2e.dart 时使用）
+// ============================================================================
+
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// import 'package:<your_app>/app/app.dart';                 // TODO: 你的根 Widget
+// import 'package:<your_app>/data/services/dio_provider.dart'; // TODO: baseUrl provider
+
+const String kE2eBaseUrl =
+    String.fromEnvironment('E2E_BASE_URL', defaultValue: 'http://localhost:8000');
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 关键：强制生成语义 DOM，否则 web 端只有一个空 <canvas>，Playwright 无从定位
+  SemanticsBinding.instance.ensureSemantics();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        // TODO: 用 e2e 后端地址覆盖生产 baseUrl，例如：
+        // apiBaseUrlProvider.overrideWithValue(kE2eBaseUrl),
+      ],
+      child: const _E2eApp(),
+    ),
+  );
+}
+
+class _E2eApp extends StatelessWidget {
+  const _E2eApp();
+
+  @override
+  Widget build(BuildContext context) {
+    // return const App();  // TODO: 返回真实根 Widget
+    return const MaterialApp(
+      home: Scaffold(body: Center(child: Text('replace with App()'))),
+    );
+  }
+}

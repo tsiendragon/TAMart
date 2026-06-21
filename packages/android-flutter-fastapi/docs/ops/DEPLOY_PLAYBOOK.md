@@ -6,7 +6,7 @@
 本地 / CI  →  Docker Hub / Registry  →  生产服务器
                                           ├── docker-compose.prod.yml
                                           ├── FastAPI + Uvicorn (Gunicorn)
-                                          ├── PostgreSQL
+                                          ├── MySQL 8 + Redis
                                           └── Nginx（反向代理）
 ```
 
@@ -14,7 +14,7 @@
 
 ```bash
 # .env.prod（不入 git，在服务器上手动创建或通过 CI secrets 注入）
-DATABASE_URL=postgresql+asyncpg://user:password@db:5432/appdb
+DATABASE_URL=mysql+pymysql://user:password@db:3306/appdb
 JWT_SECRET_KEY=<strong-random-secret>
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=15
@@ -42,21 +42,23 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:15-alpine
+    image: mysql:8.0
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
     environment:
-      POSTGRES_DB: appdb
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysqldata:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
 volumes:
-  pgdata:
+  mysqldata:
 ```
 
 ## 部署步骤

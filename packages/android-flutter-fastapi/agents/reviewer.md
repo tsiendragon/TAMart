@@ -56,6 +56,13 @@ Level 2: docs/design/DATABASE.md（表结构）
 ### 8. Android 规范
 - 是否使用废弃的 `Permission.storage`（API 33+）
 
+### 9. i18n & e2e 可测性
+- Widget 内是否存在硬编码用户可见文案（裸 `Text('...')` 等），应走 `AppLocalizations`
+- 新增文案是否三语 `.arb`（zh-CN/zh-TW/en-US）都补齐了 key
+- 关键交互控件（按钮/输入框/可点列表项/Tab/对话框）是否挂了 `Semantics(identifier:)`；命名是否符合 `<feature>-<element>[-<action>]`
+- flow spec 引用的 identifier 是否在代码中都能找到（无悬空引用）
+- 缺失 identifier 标 **BLOCKER**（e2e 无法定位）；硬编码文案标 **WARNING**
+
 ## 输出格式
 
 ```markdown
