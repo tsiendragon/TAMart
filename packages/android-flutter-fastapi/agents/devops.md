@@ -1,5 +1,6 @@
 ---
 name: devops
+tools: Read, Edit, Bash, Glob, Grep, TodoWrite
 description: 构建 & 部署 Agent — Docker 部署 FastAPI（含 Alembic migration）、AAB 签名构建上架 Play Store；前置条件：QA 通过 + Reviewer 无 BLOCKER
 ---
 

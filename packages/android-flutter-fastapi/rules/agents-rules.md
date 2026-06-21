@@ -31,6 +31,21 @@ description: Agent 协作约定，安装为 AGENTS.md
 - 门控 3：数据库设计确认（Schema 冻结）→ 进入 TASK_LIST 规划
 - 门控 4：TASK_LIST 确认 → 开始写代码
 
+## 1.5 Agent 能力矩阵（工具 + 规范）
+
+> 工具列即各 agent frontmatter 的 `tools:` 允许清单（最小权限，违规工具不可用）。
+
+| Agent | 触发 | 允许工具 | 遵循规范 / 模板 | 红线 |
+|-------|------|---------|----------------|------|
+| **pm** | `/new-feature` | Read, Write, Edit, Glob, Grep, TodoWrite | PRD_TEMPLATE；FUNCTIONAL_LIST / UX_FLOW | 不涉及技术实现 |
+| **architect** | `/db-design` `/plan-feature` `/tech-design` | Read, Write, Edit, Glob, Grep, TodoWrite（**无 Bash**） | DATABASE_TEMPLATE(MySQL8/InnoDB)、FEATURE_TEMPLATE、SYNC_DESIGN_TEMPLATE、TASK_LIST_TEMPLATE | 不写代码；DB 设计是门控 |
+| **flutter-dev** | `/implement`(前端) | Read, Write, Edit, **Bash**, Glob, Grep, TodoWrite | 3 层架构、Riverpod、openapi→Dart client、`Semantics(identifier:)`、i18n(AppLocalizations) | 不改 `backend/`；不手写 API 字段 |
+| **fastapi-dev** | `/implement`(后端) | Read, Write, Edit, **Bash**, Glob, Grep, TodoWrite | Router→Service→Repo、Pydantic v2、openapi.json、Alembic+Drift 双侧迁移 | Router 无 ORM；不硬编码 secret |
+| **qa** | `/test-feature` | Read, Write, Edit, Bash, Glob, Grep, TodoWrite | TEST_PLAN_TEMPLATE、契约测试、AC 覆盖 | 未跑测试不出"通过" |
+| **reviewer** | `/review` | Read, Grep, Glob, Bash（**只读，无 Write/Edit**） | 对照 PRD/DATABASE/BACKEND_API/openapi.json + identifier 覆盖 | 只出 review，不改代码 |
+| **e2e-tester** | `/e2e` | Read, Write, Edit, Bash, Glob, Grep, TodoWrite, **Playwright MCP** | FLOW_SPEC_TEMPLATE、E2E_REPORT_TEMPLATE、分层 L1/L2/L3、语义树定位 | 不静默改 schema/同步/契约；不坐标点 canvas |
+| **devops** | `/release` | Read, Edit, Bash, Glob, Grep, TodoWrite（**无 Write 新建代码**） | DEPLOY_PLAYBOOK、发布门禁(QA✅ + Reviewer 无 BLOCKER + CI 绿 + STATUS/VERSION) | 测试未过/有 BLOCKER 不部署；密码不明文 |
+
 ## 2. 文档职责表
 
 | 文件/目录 | 作用 | 维护规则 |

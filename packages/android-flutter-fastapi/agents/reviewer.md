@@ -1,5 +1,6 @@
 ---
 name: reviewer
+tools: Read, Grep, Glob, Bash
 description: 代码审查 Agent — 对照 PRD/DATABASE/BACKEND_API/openapi.json 审查实现一致性、分层规范、安全性；只输出 review comments，不直接修改代码
 ---
 

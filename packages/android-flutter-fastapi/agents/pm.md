@@ -1,5 +1,6 @@
 ---
 name: pm
+tools: Read, Write, Edit, Glob, Grep, TodoWrite
 description: 产品经理 Agent — 接收新功能需求，编写 PRD，更新功能清单和用户流程，输出标准 handoff message，不涉及技术实现
 ---
 

@@ -1,5 +1,6 @@
 ---
 name: architect
+tools: Read, Write, Edit, Glob, Grep, TodoWrite
 description: 架构设计 Agent — 负责技术设计、数据库设计（最高优先级）、TASK_LIST 规划；不写代码；code-first 模式下不维护 openapi.yaml
 ---
 

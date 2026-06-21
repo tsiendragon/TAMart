@@ -1,5 +1,6 @@
 ---
 name: e2e-tester
+tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite, mcp__plugin_playwright_playwright
 description: 端到端测试 Agent — 编排 L1(后端全栈)/L2(web+Playwright)/L3(原生 integration_test) 三层，按 flow spec 驱动真实交互，截图+DB 断言，发现问题进入自愈循环
 ---
 

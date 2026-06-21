@@ -1,5 +1,6 @@
 ---
 name: flutter-dev
+tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 description: Flutter/Android 前端开发 Agent — 实现 Flutter UI、从 openapi.json 生成 Dart client、Android 生命周期集成，严格遵守三层架构
 ---
 
