@@ -35,6 +35,12 @@ description: Android Flutter + FastAPI 项目核心约束规则，安装为 CLAU
 17. Android 13+（API 33）使用细粒度权限：`Permission.photos` / `Permission.videos` / `Permission.audio`
 18. API client 从 openapi.json 生成，禁止手写字段定义
 
+### i18n & e2e 可测性
+18a. 用户可见文案一律走 `AppLocalizations`，禁止 Widget 内裸字符串；新增文案同步补 zh-CN / zh-TW / en-US 三语 `.arb` key（hook 告警）
+18b. 关键交互控件（按钮/输入框/可点列表项/Tab/对话框）必须挂 `Semantics(identifier:)`，命名 `<feature>-<element>[-<action>]`，全小写连字符
+18c. e2e 定位用 identifier（语言无关），不得依赖可见文案；同一 id 在 web 语义树与原生 `find.bySemanticsIdentifier` 复用
+18d. flow spec（`e2e/flows/<feature>.flow.yaml`）是 L2(web Playwright) 与 L3(integration_test) 的单一来源，二者共用，禁止双写
+
 ### 安全
 19. 禁止硬编码 secret、密码、JWT key、API key；一律用环境变量
 20. Keystore 文件和 key.properties 不入 git

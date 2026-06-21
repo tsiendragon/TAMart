@@ -14,6 +14,8 @@ description: Agent 协作约定，安装为 AGENTS.md
 3. **单任务节奏**：每轮只执行 TASK_LIST 中的一个任务，完成即 commit + push。
 4. **阶段交接必须输出 handoff message**：不允许跳过交接直接进入下一阶段。
 5. **完成一个完整改动单元**：更新文档 → 实现代码 → 运行验证 → commit → push。
+6. **schema 变更 4 件套原子提交**：任何表/列变更，必须在**同一个 commit**同步改齐 ① DATABASE.md ② 后端 Alembic migration（含 downgrade）③ 前端 Drift table + `schemaVersion` bump + `MigrationStrategy` step ④ 双侧迁移测试。缺一不可，不允许分多次提交。
+7. **同步协议是冻结契约**：涉及 `sync_id` / `updated_at` / tombstone / `schema_version` / push-pull / 冲突解决的变更，须经设计门控（见 SYNC_DESIGN_<feature>.md），不得在实现/测试阶段静默改。
 
 ## 1. 开发生命周期阶段
 
@@ -28,6 +30,21 @@ description: Agent 协作约定，安装为 AGENTS.md
 - 门控 2：Tech Design 确认 → 进入数据库设计
 - 门控 3：数据库设计确认（Schema 冻结）→ 进入 TASK_LIST 规划
 - 门控 4：TASK_LIST 确认 → 开始写代码
+
+## 1.5 Agent 能力矩阵（工具 + 规范）
+
+> 工具列即各 agent frontmatter 的 `tools:` 允许清单（最小权限，违规工具不可用）。
+
+| Agent | 触发 | 允许工具 | 遵循规范 / 模板 | 红线 |
+|-------|------|---------|----------------|------|
+| **pm** | `/new-feature` | Read, Write, Edit, Glob, Grep, TodoWrite | PRD_TEMPLATE；FUNCTIONAL_LIST / UX_FLOW | 不涉及技术实现 |
+| **architect** | `/db-design` `/plan-feature` `/tech-design` | Read, Write, Edit, Glob, Grep, TodoWrite（**无 Bash**） | DATABASE_TEMPLATE(MySQL8/InnoDB)、FEATURE_TEMPLATE、SYNC_DESIGN_TEMPLATE、TASK_LIST_TEMPLATE | 不写代码；DB 设计是门控 |
+| **flutter-dev** | `/implement`(前端) | Read, Write, Edit, **Bash**, Glob, Grep, TodoWrite | 3 层架构、Riverpod、openapi→Dart client、`Semantics(identifier:)`、i18n(AppLocalizations) | 不改 `backend/`；不手写 API 字段 |
+| **fastapi-dev** | `/implement`(后端) | Read, Write, Edit, **Bash**, Glob, Grep, TodoWrite | Router→Service→Repo、Pydantic v2、openapi.json、Alembic+Drift 双侧迁移 | Router 无 ORM；不硬编码 secret |
+| **qa** | `/test-feature` | Read, Write, Edit, Bash, Glob, Grep, TodoWrite | TEST_PLAN_TEMPLATE、契约测试、AC 覆盖 | 未跑测试不出"通过" |
+| **reviewer** | `/review` | Read, Grep, Glob, Bash（**只读，无 Write/Edit**） | 对照 PRD/DATABASE/BACKEND_API/openapi.json + identifier 覆盖 | 只出 review，不改代码 |
+| **e2e-tester** | `/e2e` | Read, Write, Edit, Bash, Glob, Grep, TodoWrite, **Playwright MCP** | FLOW_SPEC_TEMPLATE、E2E_REPORT_TEMPLATE、分层 L1/L2/L3、语义树定位 | 不静默改 schema/同步/契约；不坐标点 canvas |
+| **devops** | `/release` | Read, Edit, Bash, Glob, Grep, TodoWrite（**无 Write 新建代码**） | DEPLOY_PLAYBOOK、发布门禁(QA✅ + Reviewer 无 BLOCKER + CI 绿 + STATUS/VERSION) | 测试未过/有 BLOCKER 不部署；密码不明文 |
 
 ## 2. 文档职责表
 
@@ -77,7 +94,9 @@ Tech Design: docs/design/FEATURE_<feature>.md
 ## DB Design Handoff → Plan
 DATABASE.md 已更新，涉及表: [table_a, table_b]
 已确认日期: <YYYY-MM-DD>
-Migration 类型: autogenerate + 手写 CHECK 约束
+后端 Alembic: autogenerate + 手写 CHECK 约束
+前端 Drift: schemaVersion v22 → v23（createTable / addColumn）
+同步影响: 是/否（涉及 sync_id/tombstone 时附 SYNC_DESIGN_<feature>.md）
 ```
 
 ### Architect → Dev

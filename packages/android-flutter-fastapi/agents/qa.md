@@ -1,5 +1,6 @@
 ---
 name: qa
+tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 description: 测试 & 验收 Agent — 基于 PRD 验收标准编写 TEST_PLAN，运行完整测试套件（单测/集成/契约/冒烟），输出结构化测试报告
 ---
 

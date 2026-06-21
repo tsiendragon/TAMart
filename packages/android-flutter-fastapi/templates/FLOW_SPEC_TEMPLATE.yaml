@@ -1,0 +1,64 @@
+# ============================================================================
+# FLOW SPEC — e2e 用户流程描述（L2 web Playwright 与 L3 integration_test 共用）
+# 放置位置：<project>/e2e/flows/<feature>.flow.yaml
+#
+# 单一来源：同一份 flow 同时驱动
+#   - L2：Flutter web + Playwright（走语义树 / flt-semantics-identifier）
+#   - L3：integration_test（find.bySemanticsIdentifier / find.byKey）
+# 定位一律用 identifier（语言无关），禁止依赖可见文案（文案随语言变）。
+# ============================================================================
+
+feature: <feature>            # 例：transaction
+title: <一句话描述这条流程>     # 例：登录后新建一笔支出并核对落库
+description: |
+  <这条流程覆盖的用户路径与验收点；对应 PRD 的哪些 AC>
+
+# ── 前置条件 ────────────────────────────────────────────────
+setup:
+  backend: test              # test | docker（起哪种后端栈，见 e2e-backend-run.sh）
+  seed: []                   # 预置数据（可引用 backend/tests fixtures），无则留空
+  env:
+    E2E_USER: "e2e@example.com"   # 敏感值用占位/环境变量，禁止硬编码真实凭据
+
+# ── 步骤序列 ────────────────────────────────────────────────
+# 支持的动作：
+#   tap / type / expect_screen / expect_text / expect_visible /
+#   wait / screenshot / scroll / select
+# 每个定位字段 id 必须是代码里 Semantics(identifier:) 的值。
+steps:
+  - tap: { id: login-email-field }
+  - type: { id: login-email-field, value: "$E2E_USER" }
+  - type: { id: login-password-field, value: "$E2E_PASSWORD" }
+  - tap: { id: login-submit-btn }
+  - expect_screen: home            # 到达的页面（用页面根 Semantics identifier）
+  - screenshot: after-login        # L2 视觉基线名 → e2e/baselines/<feature>/after-login.png
+
+  - tap: { id: txn-add-btn }
+  - type: { id: txn-amount-field, value: "12.50" }
+  - tap: { id: txn-category-expense }
+  - tap: { id: txn-save-btn }
+  - expect_screen: home
+  - expect_text: { id: txn-list-item-amount, contains: "12.50" }
+  - screenshot: after-create-txn
+
+# ── 数据库断言（落库核对，L1/L2/L3 通用，见 assert-db.sh）────────
+db_assert:
+  - table: transactions
+    where: { amount_cents: 1250, deleted_at: null }
+    expect: exists
+  - table: transactions
+    where: { user_id: "$E2E_USER_ID" }
+    expect: { count: 1 }
+
+# ── 网络断言（L2 通过 Playwright network 事件；可选）──────────
+network_assert:
+  - method: POST
+    path: /api/v1/transactions
+    expect_status: 200
+    expect_json: { code: 0 }
+
+# ── 视觉回归（L2）──────────────────────────────────────────
+visual:
+  enabled: true
+  max_diff_pixel_ratio: 0.01     # 覆盖 e2e 全局默认（0.01）
+  threshold: 0.2                 # 抗锯齿容差

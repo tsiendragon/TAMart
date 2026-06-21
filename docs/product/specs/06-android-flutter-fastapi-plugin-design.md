@@ -4,6 +4,9 @@
 **日期：** 2026-06-14
 **状态：** 待实现
 
+> 增量设计（基于真实项目 finnotev2）：分层混合 e2e 测试 + 前端 Drift 迁移 + 离线同步协议 + i18n + CI/STATUS
+> 见 [`07-android-flutter-fastapi-e2e-and-enhancements.md`](./07-android-flutter-fastapi-e2e-and-enhancements.md)（已实现至插件脚手架）。
+
 ---
 
 ## 一、目标

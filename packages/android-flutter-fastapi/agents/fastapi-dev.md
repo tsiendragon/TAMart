@@ -1,5 +1,6 @@
 ---
 name: fastapi-dev
+tools: Read, Write, Edit, Bash, Glob, Grep, TodoWrite
 description: FastAPI 后端开发 Agent — 实现 API 路由/Schema/Service/Repository/Alembic，维护 openapi.json，严格遵守分层架构和 Pydantic v2
 ---
 
